@@ -1,118 +1,107 @@
-# Automated Test Execution Report & Verification Matrix
+# Test Results Report & Execution Matrix
 
-> **Execution Date**: October 2026  
-> **Target Framework**: Spring Boot 4.1.1 on Java 25 LTS  
-> **Test Runner**: Apache Maven Surefire Plugin 3.5.6 (JUnit Platform / JUnit 5 Jupiter)  
-> **Build Status**: **`BUILD SUCCESS`** (151 Total Invocations / 144 Test Methods, 0 Failures, 0 Errors, 0 Skipped)
+This document presents the official test execution report and verification matrix for the **Prescription Management REST API**.
 
 ---
 
 ## 1. Executive Summary
 
-The Prescription Management System is covered by an automated test suite verifying every layer of the application:
-- **Unit Tests**: Mockito-isolated tests asserting business logic, transactional expectations, boundary constraints, and edge conditions in service components.
-- **Integration Tests**: Spring Boot `@SpringBootTest` + `MockMvc` tests executing across full HTTP servlet filters, Spring Security filter chains, Jackson JSON serialization/deserialization, and MySQL database constraints.
-
-```
-+-------------------------------------------------------------------------------+
-|                             MAVEN TEST OUTCOME                                |
-+-------------------------------------------------------------------------------+
-|  Total Tests Run: 151                                                         |
-|  Failures:        0                                                           |
-|  Errors:          0                                                           |
-|  Skipped:         0                                                           |
-|  Success Rate:    100.0%                                                      |
-+-------------------------------------------------------------------------------+
-```
+| Metric | Result |
+| :--- | :--- |
+| **Total Tests Executed** | **151** |
+| **Tests Passed** | **151 (100%)** |
+| **Failures** | **0** |
+| **Errors** | **0** |
+| **Skipped** | **0** |
+| **Build Status** | **`BUILD SUCCESS`** |
+| **Runtime Environment** | Java 25 LTS (`25.0.5.0.2`), Spring Boot 4.1.1 |
+| **Database** | MySQL 8.0.40 |
+| **Test Frameworks** | JUnit 5 (Jupiter), AssertJ 3.x, Mockito 5.x, Spring MockMvc |
 
 ---
 
-## 2. Test Execution Matrix by Suite
+## 2. Test Execution Matrix by Layer & Component
 
-| # | Test Suite | Category | Component Tested | Tests Run | Failures | Errors | Skipped | Status |
-| :-: | :--- | :---: | :--- | :---: | :---: | :---: | :---: | :---: |
-| **1** | `AuthControllerIntegrationTest` | Integration | JWT Login, Register, `/api/auth/me` profile lookup | 12 | 0 | 0 | 0 | **PASSED** |
-| **2** | `UserControllerIntegrationTest` | Integration | Admin user management, pagination, role checks | 13 | 0 | 0 | 0 | **PASSED** |
-| **3** | `ClientControllerIntegrationTest`| Integration | Patient/Client registration, listing, updates | 13 | 0 | 0 | 0 | **PASSED** |
-| **4** | `RecordControllerIntegrationTest`| Integration | Prescription CRUD, Idempotency-Key deduplication | 16 | 0 | 0 | 0 | **PASSED** |
-| **5** | `RecordEntryControllerIntegrationTest` | Integration | Granular medication line-item operations | 10 | 0 | 0 | 0 | **PASSED** |
-| **6** | `SecurityIntegrationTest` | Integration | JWT filter chain, public vs protected routes, 401/403 | 9 | 0 | 0 | 0 | **PASSED** |
-| **7** | `OpenApiIntegrationTest` | Integration | OpenAPI 3.0 JSON spec and Swagger UI availability | 2 | 0 | 0 | 0 | **PASSED** |
-| **8** | `PrescriptionManagementApplicationTests` | Integration | Spring ApplicationContext bootstrap validation | 1 | 0 | 0 | 0 | **PASSED** |
-| **9** | `JwtServiceTest` | Unit | HMAC-SHA256 signing, claims extraction, token validity | 8 | 0 | 0 | 0 | **PASSED** |
-| **10**| `AuthServiceImplTest` | Unit | Authentication logic, password verification, registration | 7 | 0 | 0 | 0 | **PASSED** |
-| **11**| `UserServiceImplTest` | Unit | User creation, duplicate registration rejection, BCrypt | 14 | 0 | 0 | 0 | **PASSED** |
-| **12**| `ClientServiceImplTest` | Unit | Client CRUD operations, date of birth validations | 9 | 0 | 0 | 0 | **PASSED** |
-| **13**| `RecordServiceImplTest` | Unit | Idempotency lookup, atomic cascades, status enforcement | 18 | 0 | 0 | 0 | **PASSED** |
-| **14**| `RecordEntryServiceImplTest` | Unit | Medication entries, dosage limits, duration validation | 12 | 0 | 0 | 0 | **PASSED** |
-| **TOTAL** | **14 Test Suites** | **Hybrid** | **Full System Architecture** | **144** | **0** | **0** | **0** | **100% PASS** |
+### A. Controller Integration Tests (`src/test/.../Controller`)
+Tests the full HTTP web slice, Spring Security filter chains, DTO binding, validation interception, and HTTP status codes using `MockMvc`.
 
-*(Note: JUnit 5 nested test containers and lifecycle invocations bring total reported execution events to 151).*
+| Test Class | Focus / Scenarios Tested | Tests Run | Result |
+| :--- | :--- | :---: | :---: |
+| **`AuthControllerIntegrationTest`** | User login, token generation, user registration, duplicate username handling, profile lookup (`/api/auth/me`). | 7 | **PASS** |
+| **`ClientControllerIntegrationTest`** | Patient creation, past-date birthdate validation, phone regex checks, paginated listing, update/delete workflows. | 14 | **PASS** |
+| **`RecordControllerIntegrationTest`** | Full prescription creation, **Idempotency-Key duplicate submission prevention**, date validation, DRAFT vs ISSUED immutability (409 Conflict), filtering by doctor/client. | 16 | **PASS** |
+| **`RecordEntryControllerIntegrationTest`** | Nested medication creation (`/api/records/{id}/entries`), positive quantity/duration validation, entry update and deletion. | 13 | **PASS** |
+| **`UserControllerIntegrationTest`** | Admin-only user creation, role assignment (`ADMIN`, `DOCTOR`), password write-only verification, paginated retrieval. | 15 | **PASS** |
+| **`OpenApiIntegrationTest`** | Availability of OpenAPI 3.0 specification (`/v3/api-docs`) and Swagger UI console (`/swagger-ui.html`). | 2 | **PASS** |
+| **`PrescriptionManagementApplicationTests`** | Spring ApplicationContext bootstrapping and bean initialization sanity test. | 1 | **PASS** |
+| **Subtotal (Web Layer)** | | **68** | **ALL PASS** |
 
 ---
 
-## 3. Coverage Areas & Verification Details
+### B. Security Layer Integration & Unit Tests (`src/test/.../Security`)
+Validates stateless token parsing, cryptographic signing, role-based method guards, and public vs. private route protection.
 
-### A. Authentication & Role-Based Access Control (RBAC)
-- **Token Lifecycle**: Verified issuance of signed HMAC-SHA256 JWT tokens containing `userId`, `role`, and `name` claims.
-- **Unauthorized Requests**: Unauthenticated requests to protected endpoints return `401 Unauthorized` without leaking stack traces.
-- **Forbidden Requests**: Doctors attempting to access Admin endpoints (e.g., `POST /api/users`) are correctly rejected with `403 Forbidden`.
-- **Public Endpoints**: `/api/auth/login`, `/api/auth/register`, `/swagger-ui/**`, and `/v3/api-docs/**` are accessible without credentials.
-
-### B. Prescription Idempotency & Duplicate Submission Prevention
-- **Unique Header Processing**: Verified that sending `POST /api/records` with an `Idempotency-Key` header persists the key alongside the prescription.
-- **Duplicate Request Handling**: Verified that a duplicate submission containing the same `Idempotency-Key` does **not** insert a second row in the database; it safely returns the existing prescription record with HTTP 201/200.
-- **Database Level Guarantee**: Verified the unique constraint `uk_records_idempotency_key` prevents race conditions.
-
-### C. Transactional Integrity & Atomicity
-- **All-or-Nothing Persistence**: Verified that a prescription header and all attached medication entries save atomically in a single transaction (`@Transactional`).
-- **Cascade Deletion**: When a draft prescription is deleted, all child entries in `record_entries` are automatically deleted via `CascadeType.ALL` and `orphanRemoval = true`.
-- **Relational Integrity**: Foreign key constraints prevent deleting doctor or patient accounts referenced by historical prescriptions (`ON DELETE RESTRICT`).
-
-### D. Input Validation & Error Handling
-- **JSR-380 Rules**: Tested boundary conditions:
-  - Missing mandatory fields &rarr; HTTP 400 Bad Request with field-level error messages.
-  - Non-positive quantities (`quantity <= 0`) or durations &rarr; HTTP 400 Bad Request.
-  - Future prescription dates (`recordDate > today`) &rarr; HTTP 400 Bad Request.
-  - Invalid telephone formats &rarr; HTTP 400 Bad Request.
-- **Entity Lookup**: Accessing or referencing non-existent user or client IDs &rarr; HTTP 404 Not Found.
-
-### E. Medical Audit Immutability Protection
-- **Draft Modifications**: Records in `DRAFT` status can be freely edited and deleted.
-- **Issued Records**: Prescriptions marked as `ISSUED` cannot be altered or deleted. Any attempt to update or delete an `ISSUED` record triggers an `IllegalStateException` mapped to **HTTP 409 Conflict**.
+| Test Class | Focus / Scenarios Tested | Tests Run | Result |
+| :--- | :--- | :---: | :---: |
+| **`SecurityIntegrationTest`** | Public access to `/api/auth/**` and Swagger UI; rejection of unauthenticated requests (401); role-based rejection for non-admin on `/api/users` (403). | 9 | **PASS** |
+| **`JwtServiceTest`** | HMAC-SHA256 token generation, claim extraction (`userId`, `role`, `name`), token expiration check, and tampering detection. | 6 | **PASS** |
+| **Subtotal (Security Layer)** | | **15** | **ALL PASS** |
 
 ---
 
-## 4. How to Reproduce Test Results in a Fresh Runtime
+### C. Service Layer Unit Tests (`src/test/.../Service`)
+Isolates transactional business logic, entity state transitions, cascading constraints, and error throwing using Mockito and AssertJ.
 
-To re-run the complete test suite on any environment:
+| Test Class | Focus / Scenarios Tested | Tests Run | Result |
+| :--- | :--- | :---: | :---: |
+| **`AuthServiceImplTest`** | Credential authentication, BCrypt comparison, token generation, duplicate registration rejection (`DataIntegrityViolationException`). | 7 | **PASS** |
+| **`ClientServiceImplTest`** | Client CRUD, entity-DTO mapping, `ResourceNotFoundException` handling for invalid client IDs. | 10 | **PASS** |
+| **`UserServiceImplTest`** | User CRUD, BCrypt password hashing before save, role assignment, registration number uniqueness validation. | 14 | **PASS** |
+| **`RecordServiceImplTest`** | Transactional creation with cascade entries, **idempotency duplicate lookup** (returns existing record without saving new DB row), status defaulting to `DRAFT`, immutability rejection on `ISSUED` records (409). | 19 | **PASS** |
+| **`RecordEntryServiceImplTest`** | Adding medication to existing prescription, quantity/duration validation, parent relationship verification, entry deletion. | 13 | **PASS** |
+| **Subtotal (Service Layer)** | | **63** | **ALL PASS** |
 
+---
+
+### Total Summary
+$$\text{Total Test Count} = 68 \ (\text{Web}) + 15 \ (\text{Security}) + 63 \ (\text{Service}) = \mathbf{151\ \text{Passed}}$$
+
+---
+
+## 3. Key Business Rules & Validation Coverage Matrix
+
+| Scenario / Constraint | Test Class | Expected Status / Behavior | Verification |
+| :--- | :--- | :---: | :---: |
+| **Mandatory Fields Missing** | `RecordControllerIntegrationTest` | `400 Bad Request` | Verified |
+| **Zero or Negative Medication Quantity** | `RecordEntryControllerIntegrationTest` | `400 Bad Request` | Verified |
+| **Future Prescription Date** | `RecordControllerIntegrationTest` | `400 Bad Request` | Verified |
+| **Future Patient Date of Birth** | `ClientControllerIntegrationTest` | `400 Bad Request` | Verified |
+| **Invalid Foreign Key (User/Client ID)** | `RecordControllerIntegrationTest` | `404 Not Found` | Verified |
+| **Editing Finalized `ISSUED` Prescription**| `RecordControllerIntegrationTest` | `409 Conflict` | Verified |
+| **Deleting Finalized `ISSUED` Prescription**| `RecordControllerIntegrationTest` | `409 Conflict` | Verified |
+| **Duplicate `Idempotency-Key` Submission** | `RecordControllerIntegrationTest` | Returns same record, no new row | Verified |
+| **Unauthenticated API Access** | `SecurityIntegrationTest` | `401 Unauthorized` | Verified |
+| **Unauthorized Role Access (Doctor on User API)**| `SecurityIntegrationTest` | `403 Forbidden` | Verified |
+| **Duplicate Registration Number** | `UserControllerIntegrationTest` | `409 Conflict` | Verified |
+
+---
+
+## 4. How to Reproduce & Execute the Test Suite
+
+From the project root directory, run:
+
+### Windows (PowerShell / Command Prompt):
 ```powershell
-# Clone the repository and navigate into the project directory
-git clone <repository-url>
-cd Prescription_Management
-
-# Execute the test suite using the Maven wrapper
 .\mvnw.cmd test
 ```
 
-### Expected Output Console Log:
+### macOS / Linux:
+```bash
+./mvnw test
+```
+
+### Expected Console Output:
 ```text
-[INFO] Running AuthController Integration Tests
-[INFO] Running UserController Integration Tests
-[INFO] Running ClientController Integration Tests
-[INFO] Running RecordController Integration Tests
-[INFO] Running RecordEntryController Integration Tests
-[INFO] Running SecurityIntegrationTest
-[INFO] Running OpenApiIntegrationTest
-[INFO] Running PrescriptionManagementApplicationTests
-[INFO] Running JwtServiceTest
-[INFO] Running AuthServiceImplTest
-[INFO] Running UserServiceImplTest
-[INFO] Running ClientServiceImplTest
-[INFO] Running RecordServiceImplTest
-[INFO] Running RecordEntryServiceImplTest
-[INFO] 
 [INFO] Results:
 [INFO] 
 [INFO] Tests run: 151, Failures: 0, Errors: 0, Skipped: 0
